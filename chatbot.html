@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gemini Assistant</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gemini Assistant</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f7fb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .chat-container {
+      width: 100%;
+      max-width: 800px;
+      height: 90vh;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background-color: #ffffff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 16px;
+      background: linear-gradient(90deg, #6a11cb, #2575fc);
+      color: white;
+      font-weight: bold;
+      font-size: 1.4rem;
+      text-align: center;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .message {
+      display: flex;
+      margin-bottom: 15px;
+    }
+
+    .user-message {
+      justify-content: flex-end;
+    }
+
+    .bot-message {
+      justify-content: flex-start;
+    }
+
+    .message-content {
+      max-width: 75%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 15px;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+
+    .user-message .message-content {
+      background-color: #2575fc;
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .bot-message .message-content {
+      background-color: #f1f1f1;
+      color: #333;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-input-container {
+      display: flex;
+      padding: 16px;
+      border-top: 1px solid #ddd;
+      background-color: #fff;
+    }
+
+    #user-input {
+      flex-grow: 1;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    #send-button {
+      margin-left: 10px;
+      padding: 12px 20px;
+      font-size: 16px;
+      background: linear-gradient(90deg, #6a11cb, #2575fc);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #send-button:hover {
+      opacity: 0.9;
+    }
+
+    #send-button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 600px) {
+      .chat-container {
+        height: 100vh;
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">Gemini Assistant</div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-container">
+      <input type="text" id="user-input" placeholder="Ask me anything..." />
+      <button id="send-button">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const API_KEY = 'AIzaSyAr0RiT4gA2muZuZkj85eT-_cG6cUELaxU';
+    const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
+    const chatMessages = document.getElementById('chat-messages');
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send-button');
+
+    async function generateResponse(prompt) {
+      const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt
+                }
+              ]
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate response');
+      }
+
+      const data = await response.json();
+      return data.candidates[0].content.parts[0].text;
+    }
+
+    function cleanMarkdown(text) {
+      return text
+        .replace(/#{1,6}\s?/g, '')
+        .replace(/\*\*/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    }
+
+    function addMessage(message, isUser) {
+      const messageElement = document.createElement('div');
+      messageElement.classList.add('message', isUser ? 'user-message' : 'bot-message');
+
+      const messageContent = document.createElement('div');
+      messageContent.classList.add('message-content');
+      messageContent.textContent = message;
+
+      messageElement.appendChild(messageContent);
+      chatMessages.appendChild(messageElement);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    async function handleUserInput() {
+      const userMessage = userInput.value.trim();
+      if (userMessage) {
+        addMessage(userMessage, true);
+        userInput.value = '';
+        sendButton.disabled = true;
+        userInput.disabled = true;
+
+        try {
+          const botMessage = await generateResponse(userMessage);
+          addMessage(cleanMarkdown(botMessage), false);
+        } catch (error) {
+          console.error('Error:', error);
+          addMessage('Sorry, something went wrong. Please try again.', false);
+        } finally {
+          sendButton.disabled = false;
+          userInput.disabled = false;
+          userInput.focus();
+        }
+      }
+    }
+
+    sendButton.addEventListener('click', handleUserInput);
+    userInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleUserInput();
+      }
+    });
+  </script>
+</body>
+</html>
+
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f7fb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .chat-container {
+      width: 100%;
+      max-width: 800px;
+      height: 90vh;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background-color: #ffffff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 16px;
+      background: linear-gradient(90deg, #6a11cb, #2575fc);
+      color: white;
+      font-weight: bold;
+      font-size: 1.4rem;
+      text-align: center;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .message {
+      display: flex;
+      margin-bottom: 15px;
+    }
+
+    .user-message {
+      justify-content: flex-end;
+    }
+
+    .bot-message {
+      justify-content: flex-start;
+    }
+
+    .message-content {
+      max-width: 75%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 15px;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+
+    .user-message .message-content {
+      background-color: #2575fc;
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .bot-message .message-content {
+      background-color: #f1f1f1;
+      color: #333;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-input-container {
+      display: flex;
+      padding: 16px;
+      border-top: 1px solid #ddd;
+      background-color: #fff;
+    }
+
+    #user-input {
+      flex-grow: 1;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    #send-button {
+      margin-left: 10px;
+      padding: 12px 20px;
+      font-size: 16px;
+      background: linear-gradient(90deg, #6a11cb, #2575fc);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #send-button:hover {
+      opacity: 0.9;
+    }
+
+    #send-button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 600px) {
+      .chat-container {
+        height: 100vh;
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">Gemini Assistant</div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-container">
+      <input type="text" id="user-input" placeholder="Ask me anything..." />
+      <button id="send-button">Send</button>
+    </div>
+  </div>
+
+  <script>
+    // 🔒 Redirect to login if not logged in
+    if (!localStorage.getItem("username")) {
+      location.href = "login.html";
+    }
+
+    const chatMessages = document.getElementById('chat-messages');
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send-button');
+    const API_KEY = 'AIzaSyAr0RiT4gA2muZuZkj85eT-_cG6cUELaxU';
+    const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
+
+    function cleanMarkdown(text) {
+      return text
+        .replace(/#{1,6}\s?/g, '')
+        .replace(/\*\*/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    }
+
+    function addMessage(message, isUser) {
+      const messageElement = document.createElement('div');
+      messageElement.classList.add('message', isUser ? 'user-message' : 'bot-message');
+
+      const messageContent = document.createElement('div');
+      messageContent.classList.add('message-content');
+      messageContent.textContent = message;
+
+      messageElement.appendChild(messageContent);
+      chatMessages.appendChild(messageElement);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    async function generateResponse(prompt) {
+      const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: prompt }]
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) throw new Error('API Error');
+      const data = await response.json();
+      return data.candidates[0].content.parts[0].text;
+    }
+
+    async function handleUserInput() {
+      const userMessage = userInput.value.trim();
+      if (userMessage) {
+        addMessage(userMessage, true);
+        userInput.value = '';
+        sendButton.disabled = true;
+        userInput.disabled = true;
+
+        try {
+          const botMessage = await generateResponse(userMessage);
+          const cleanBot = cleanMarkdown(botMessage);
+          addMessage(cleanBot, false);
+
+          // 💾 Save to localStorage as history
+          let history = JSON.parse(localStorage.getItem("history") || "[]");
+          history.push({ user: userMessage, bot: cleanBot });
+          localStorage.setItem("history", JSON.stringify(history));
+
+        } catch (error) {
+          console.error('Error:', error);
+          addMessage("Sorry, something went wrong.", false);
+        } finally {
+          sendButton.disabled = false;
+          userInput.disabled = false;
+          userInput.focus();
+        }
+      }
+    }
+
+    sendButton.addEventListener('click', handleUserInput);
+    userInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleUserInput();
+      }
+    });
+  </script>
+</body>
+</html>

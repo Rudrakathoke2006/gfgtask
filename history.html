@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat History - Gemini</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="history-container">
+    <h2>Chat History</h2>
+    <div id="history-list"></div>
+    <button onclick="location.href='chatbot.html'">Back to Chat</button>
+  </div>
+
+  <script>
+    // Redirect to login if not logged in
+    if (!localStorage.getItem("username")) {
+      location.href = "login.html";
+    }
+
+    const data = JSON.parse(localStorage.getItem("history") || "[]");
+    const container = document.getElementById("history-list");
+    
+    if (data.length === 0) {
+      container.innerHTML = "<p>No chat history found.</p>";
+    } else {
+      data.forEach((item, i) => {
+        container.innerHTML += `
+          <div class="message">
+            <p><strong>You:</strong> ${item.user}</p>
+            <p><strong>Gemini:</strong> ${item.bot}</p>
+            <hr/>
+          </div>
+        `;
+      });
+    }
+  </script>
+</body>
+</html>
